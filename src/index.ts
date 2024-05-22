@@ -1,12 +1,30 @@
+import bodyParser from 'body-parser';
 import express, { Request, Response } from 'express';
 import paypal from 'paypal-rest-sdk';
+import { IPayment } from './interfaces/idex';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_API_URL } = process.env;
+
 const app = express();
 const port = 3000;
 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 app.get('/', (req, res) => {
   res.send('payment gateway');
+});
+
+/* 
+Paypal configuration
+*/
+paypal.configure({
+  mode: 'sandbox',
+  client_id: PAYPAL_CLIENT_ID as string,
+  client_secret: PAYPAL_CLIENT_SECRET as string,
 });
 
 /*
@@ -37,7 +55,7 @@ app.post('/', async (req: Request, res: Response) => {
 
 app.post('/payments/paypal', (req: Request, res: Response) => {
   try {
-    const { items, currency, total, description } = req.body;
+    const { items, currency, total, description } = req.body as IPayment;
 
     const create_payment_obj = {
       intent: 'sale',
@@ -46,8 +64,8 @@ app.post('/payments/paypal', (req: Request, res: Response) => {
       },
       redirect_urls: {
         // return_url: 'http://localhost:3004/store/payment/execute-payment',
-        return_url: `${PAYPAL_API_URL}/store/payment/execute-payment`,
-        cancel_url: `${PAYPAL_API_URL}/store/payment/cancel`,
+        return_url: `http://localhost:3000/payment/execute-payment`,
+        cancel_url: `http://localhost:3000/store/payment/cancel`,
       },
       transactions: [
         {
@@ -70,6 +88,7 @@ app.post('/payments/paypal', (req: Request, res: Response) => {
     };
 
     paypal.payment.create(create_payment_obj, (error, payment) => {
+      console.log('payment ===> ', payment);
       if (error) {
         res.status(500).json({ error: error.message });
       } else {
@@ -81,6 +100,7 @@ app.post('/payments/paypal', (req: Request, res: Response) => {
       }
     });
   } catch (error) {
+    res.send(500).json(`Internal server error : ${error}`);
     throw error;
   }
 });
