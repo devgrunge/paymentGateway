@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import paypal from 'paypal-rest-sdk'
 import { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } from './config/constants';
+import { logger } from './config/logger';
 
 const app = express();
 const port = 3000;
@@ -12,7 +13,6 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
-
 
 
 /* Paypal config */
