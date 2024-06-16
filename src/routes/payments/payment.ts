@@ -3,12 +3,16 @@ import * as PaymentController from '../../controllers/paymentController'
 
 const router = Router();
 
-/* Create paypal order */
+/* POST Routes */
 router.post('/paypal', PaymentController.createPaypalOrder)
-
-/* Paypal callback to confirm payment */
-router.get('/paypal', PaymentController.getPaypalPayment)
-
 router.post('/credit', PaymentController.creditCardPayment)
+router.post('/mbway', PaymentController.mbWayPayment)
+router.post('/multibanco', PaymentController.bankTransferPayment)
+
+
+/* GET Routes */
+router.get('/paypal', PaymentController.paypalCallbackHandler)
+router.get('/credit', PaymentController.creditCardCallbackHandler)
+router.get('/multibanco', PaymentController.mbCallbackHandler)
 
 export default router

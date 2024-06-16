@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import paypal, { Payment as IPaypal } from 'paypal-rest-sdk';
-import { CCARD_KEY, IFTHENPAY_API_URL_CREDIT_CART } from "../config/constants";
-import { ICreditCardRequest, IPayment } from "../interfaces/payment";
+import { CCARD_KEY, IFTHENPAY_API_URL_CREDIT_CART, IFTHENPAY_API_URL_MBWAY, IFTHENPAY_API_URL_SANDBOX_MULTIBANCO, MBWAY_KEY, MULTIBANCO_KEY } from "../config/constants";
+import { ICreditCardRequest, IMbwayRequest, IMultibancoRequest, IPayment } from "../interfaces/payment";
 
 
 /* Paypal methods */
@@ -58,7 +58,7 @@ export async function createPaypalOrder(req: Request, res: Response) {
   }
 
 
-  export async function getPaypalPayment(req: Request, res: Response) {
+  export async function paypalCallbackHandler(req: Request, res: Response) {
     try {
       const { paymentId, PayerID, token, orderId } = req.query as any;
       if (!token) {
@@ -89,8 +89,6 @@ export async function createPaypalOrder(req: Request, res: Response) {
     }
   }
 
-
-/* Ifthenpay methods */
 /*
     Ifthenpay payment methods
 */
@@ -104,14 +102,10 @@ export async function creditCardPayment(
   
       const bodyRequest = {
         orderId: orderId,
-        amount: amount, // Precisa de separador decinal Ex: 15.50
-        successUrl: 'https://geonatlife.bdcadigital.dev/carrinho',
-        errorUrl: 'https://geonatlife.bdcadigital.dev/carrinho?payment_status=',
-        cancelUrl:
-          'https://geonatlife.bdcadigital.dev/carrinho?payment_status=cancelled',
-        // successUrl: 'http://localhost:3000/carrinho',
-        // errorUrl: 'http://localhost:3000/carrinho?payment_status=',
-        // cancelUrl: 'http://localhost:3000/carrinho?payment_status=cancelled',
+        amount: amount, // Amount values need to follow this pattern Ex: 15.50
+        successUrl: 'http://localhost:3000/carrinho',
+        errorUrl: 'http://localhost:3000/carrinho?payment_status=error',
+        cancelUrl: 'http://localhost:3000/carrinho?payment_status=cancelled',
         language: language ?? 'pt',
       };
   
@@ -127,7 +121,7 @@ export async function creditCardPayment(
       if (!response.ok) {
         return res
           .status(500)
-          .json({ message: 'Erro ao conectar-se à ifthenpay' });
+          .json({ message: 'Error conecting to ifthenpay' });
       }
   
       const responseData = {
@@ -151,5 +145,166 @@ export async function creditCardPayment(
     }
   }
 
+  export async function creditCardCallbackHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { id, amount, requestId, sk, orderId } = req.query;
+      if (!sk) {
+        res.status(400).json({ success: false ,message: 'Payment error!' });
+      }
+      const paymentData: IPayment = {
+        id: id as string,
+        amount: amount as string,
+        requestId: requestId as string,
+        sk: sk as string,
+        isPaid: true,
+        paymentType: 'credit_card',
+        status: 'paid',
+      };
+     
+      res.status(201).json({ success: true, message: paymentData });
+    } catch (error) {
+      res.status(500).json({ success: false , mesage: error });
+    }
+  }
+
+/* Mb Way */
+
+export async function mbWayPayment(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { orderId, amount, mobileNumber, email, description } =
+        req.body as IMbwayRequest;
+  
+      const requestBody = {
+        mbWayKey: MBWAY_KEY,
+        orderId: orderId,
+        amount: amount,
+        mobileNumber: mobileNumber,
+        email: email ?? '',
+        description: description ?? '',
+      };
+  
+      const response = await fetch(IFTHENPAY_API_URL_MBWAY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const responseData = await response.json();
+  
+      if (!responseData.RequestId || !responseData.Message) {
+        throw new Error('Invalid response data from payment gateway');
+      }
+  
+      const paymentData = {
+        orderId: orderId,
+        amount: responseData.Amount,
+        message: responseData.Message,
+        requestId: responseData.RequestId,
+        status: 'pending',
+        isPaid: false,
+        paymentType: 'mbway',
+      };
+  
+      res.status(200).json({ success: true, message: paymentData });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error });
+    }
+  }
+
+  export async function bankTransferPayment(req: Request, res: Response) {
+    try {
+      const {
+        orderId,
+        amount,
+        description,
+        url,
+        clientCode,
+        clientName,
+        clientEmail,
+        clientUsername,
+        clientPhone,
+        expiryDays,
+      } = req.body as IMultibancoRequest;
+  
+      const requestBody = {
+        mbKey: MULTIBANCO_KEY,
+        orderId: orderId,
+        amount: amount,
+        description: description ?? '',
+        url: url ?? '',
+        clientCode: clientCode ?? '',
+        clientName: clientName ?? '',
+        clientEmail: clientEmail ?? '',
+        clientUsername: clientUsername ?? '',
+        clientPhone: clientPhone ?? '',
+        expiryDays: expiryDays ?? 0,
+      };
+  
+      const response = await fetch(IFTHENPAY_API_URL_SANDBOX_MULTIBANCO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const responseData = {
+        status: response.status,
+        data: await response.json(),
+      };
+  
+      const paymentData = {
+        status: 'pending',
+        isPaid: false,
+        paymentType: 'multibanco',
+        orderId: responseData.data.OrderId,
+        amount: responseData.data.Amount,
+        entity: responseData.data.Entity,
+        reference: responseData.data.Reference,
+        requestId: responseData.data.RequestId,
+        expiry_date: responseData.data.ExpiryDate,
+      };
 
 
+      res.status(200).json({success: true, message: paymentData});
+    } catch (error) {
+      res.status(500).json({ success: false, message: error });
+    }
+  }
+
+  export async function mbCallbackHandler(req: Request, res: Response) {
+    try {
+      const { orderId, amount, requestId, entity, reference, payment_datetime } =
+        req.query as Record<string, string | undefined>;
+  
+      if (!orderId || !amount || !requestId || !payment_datetime) {
+        return res.status(400).send('Missing required query parameters');
+      }
+      const paidOrder = {
+        orderId,
+        amount,
+        requestId,
+        entity,
+        reference,
+        payment_datetime
+      }
+
+      res.status(200).json({ success: true, message: paidOrder });
+    } catch (error) {
+      res.status(500).json({success: false, message: error});
+    }
+  }
