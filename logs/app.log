@@ -1,1 +1,13 @@
 2024-06-16T21:00:47.552Z info: isto é o logger funcionando !
+2024-06-17T00:11:15.982Z info: MongoDB Connected: ac-rrfkltm-shard-00-01.fvdvzfh.mongodb.net
+2024-06-17T00:11:21.575Z info: MongoDB Connected: ac-rrfkltm-shard-00-00.fvdvzfh.mongodb.net
+2024-06-17T00:11:48.056Z info: MongoDB Connected: ac-rrfkltm-shard-00-01.fvdvzfh.mongodb.net
+2024-06-17T00:12:54.557Z info: MongoDB Connected: ac-rrfkltm-shard-00-00.fvdvzfh.mongodb.net
+2024-06-17T00:14:00.683Z info: MongoDB Connected: ac-rrfkltm-shard-00-01.fvdvzfh.mongodb.net
+2024-06-17T00:14:00.692Z info: app running on port 3000
+2024-06-17T00:14:19.505Z info: MongoDB Connected: ac-rrfkltm-shard-00-00.fvdvzfh.mongodb.net
+2024-06-17T00:14:19.508Z info: app running on port 3000
+2024-06-17T00:14:26.148Z info: MongoDB Connected: ac-rrfkltm-shard-00-01.fvdvzfh.mongodb.net
+2024-06-17T00:14:26.152Z info: app running on port 3000
+2024-06-17T00:15:55.402Z info: MongoDB Connected: ac-rrfkltm-shard-00-00.fvdvzfh.mongodb.net
+2024-06-17T00:15:55.408Z info: app running on port 3000

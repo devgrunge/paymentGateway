@@ -8,7 +8,6 @@ import { ICreditCardRequest, IMbwayRequest, IMultibancoRequest, IPayment } from 
 
 export async function createPaypalOrder(req: Request, res: Response) {
     try {
-        console.log('aqui')
       const { items, currency, total, description } = req.body;
   
       const create_payment_obj = {
